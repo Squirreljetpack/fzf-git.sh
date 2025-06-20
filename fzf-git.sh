@@ -1,3 +1,4 @@
+# --------------------------------------------------------------------------
 # The MIT License (MIT)
 #
 # Copyright (c) 2024 Junegunn Choi
@@ -56,120 +57,114 @@ __fzf_git_pager() {
   echo "${pager:-cat}"
 }
 
-if [[ $1 = --list ]]; then
-  shift
-  if [[ $# -eq 1 ]]; then
-    branches() {
-      git branch "$@" --sort=-committerdate --sort=-HEAD --format=$'%(HEAD) %(color:yellow)%(refname:short) %(color:green)(%(committerdate:relative))\t%(color:blue)%(subject)%(color:reset)' --color=$(__fzf_git_color) | column -ts$'\t'
-    }
-    refs() {
-      git for-each-ref "$@" --sort=-creatordate --sort=-HEAD --color=$(__fzf_git_color) --format=$'%(if:equals=refs/remotes)%(refname:rstrip=-2)%(then)%(color:magenta)remote-branch%(else)%(if:equals=refs/heads)%(refname:rstrip=-2)%(then)%(color:brightgreen)branch%(else)%(if:equals=refs/tags)%(refname:rstrip=-2)%(then)%(color:brightcyan)tag%(else)%(if:equals=refs/stash)%(refname:rstrip=-2)%(then)%(color:brightred)stash%(else)%(color:white)%(refname:rstrip=-2)%(end)%(end)%(end)%(end)\t%(color:yellow)%(refname:short) %(color:green)(%(creatordate:relative))\t%(color:blue)%(subject)%(color:reset)' | column -ts$'\t'
-    }
-    hashes() {
-      git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=$(__fzf_git_color) "$@" $LIST_OPTS
-    }
-    case "$1" in
-      branches)
-        echo 'CTRL-O (open in browser) ╱ ALT-A (show all branches)'
-        echo 'ALT-H (list commit hashes)'
-        branches
-        ;;
-      all-branches)
-        echo 'CTRL-O (open in browser) ╱ ALT-ENTER (accept without remote)'
-        echo 'ALT-H (list commit hashes)'
-        branches -a
-        ;;
-      hashes)
-        echo 'CTRL-O (open in browser) ╱ CTRL-D (diff)'
-        echo 'CTRL-S (toggle sort) ╱ ALT-A (show all hashes)'
-        hashes
-        ;;
-      all-hashes)
-        echo 'CTRL-O (open in browser) ╱ CTRL-D (diff)'
-        echo 'CTRL-S (toggle sort)'
-        hashes --all
-        ;;
-      refs)
-        echo 'CTRL-O (open in browser) ╱ ALT-E (examine in editor) ╱ ALT-A (show all refs)'
-        refs --exclude='refs/remotes'
-        ;;
-      all-refs)
-        echo 'CTRL-O (open in browser) ╱ ALT-E (examine in editor)'
-        refs
-        ;;
-      *) exit 1 ;;
-    esac
-  elif [[ $# -gt 1 ]]; then
-    set -e
-
-    branch=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
-    if [[ $branch = HEAD ]]; then
-      branch=$(git describe --exact-match --tags 2> /dev/null || git rev-parse --short HEAD)
-    fi
-
-    # Only supports GitHub for now
-    case "$1" in
-      commit)
-        hash=$(grep -o "[a-f0-9]\{7,\}" <<< "$2" | head -n 1)
-        path=/commit/$hash
-        ;;
-      branch|remote-branch)
-        branch=$(sed 's/^[* ]*//' <<< "$2" | cut -d' ' -f1)
-        remote=$(git config branch."${branch}".remote || echo 'origin')
-        branch=${branch#$remote/}
-        path=/tree/$branch
-        ;;
-      remote)
-        remote=$2
-        path=/tree/$branch
-        ;;
-      file) path=/blob/$branch/$(git rev-parse --show-prefix)$2 ;;
-      tag)  path=/releases/tag/$2 ;;
-      *)    exit 1 ;;
-    esac
-
-    remote=${remote:-$(git config branch."${branch}".remote || echo 'origin')}
-    remote_url=$(git remote get-url "$remote" 2> /dev/null || echo "$remote")
-
-    if [[ $remote_url =~ ^git@ ]]; then
-      url=${remote_url%.git}
-      url=${url#git@}
-      url=https://${url/://}
-    elif [[ $remote_url =~ ^http ]]; then
-      url=${remote_url%.git}
-    fi
-
-    case "$(uname -sr)" in
-      Darwin*)
-        open "$url$path"
-        ;;
-      *microsoft* | *Microsoft*)
-        explorer.exe "$url$path"
-        ;;
-      *)
-        xdg-open "$url$path"
-        ;;
-    esac
-    exit 0
-  fi
-fi
-
-if [[ $- =~ i ]] || [[ $1 = --run ]]; then # ----------------------------------
-
-if [[ $__fzf_git_fzf ]]; then
-  eval "$__fzf_git_fzf"
-else
-  # Redefine this function to change the options
-  _fzf_git_fzf() {
-    fzf --height 50% --tmux 90%,70% \
-      --layout reverse --multi --min-height 20+ --border \
-      --no-separator --header-border horizontal \
-      --border-label-pos 2 \
-      --color 'label:blue' \
-      --preview-window 'right,50%' --preview-border line \
-      --bind 'ctrl-/:change-preview-window(down,50%|hidden|)' "$@"
+if [[ $# -eq 1 ]]; then
+  branches() {
+    git branch "$@" --sort=-committerdate --sort=-HEAD --format=$'%(HEAD) %(color:yellow)%(refname:short) %(color:green)(%(committerdate:relative))\t%(color:blue)%(subject)%(color:reset)' --color=$(__fzf_git_color) | column -ts$'\t'
   }
+  refs() {
+    git for-each-ref "$@" --sort=-creatordate --sort=-HEAD --color=$(__fzf_git_color) --format=$'%(if:equals=refs/remotes)%(refname:rstrip=-2)%(then)%(color:magenta)remote-branch%(else)%(if:equals=refs/heads)%(refname:rstrip=-2)%(then)%(color:brightgreen)branch%(else)%(if:equals=refs/tags)%(refname:rstrip=-2)%(then)%(color:brightcyan)tag%(else)%(if:equals=refs/stash)%(refname:rstrip=-2)%(then)%(color:brightred)stash%(else)%(color:white)%(refname:rstrip=-2)%(end)%(end)%(end)%(end)\t%(color:yellow)%(refname:short) %(color:green)(%(creatordate:relative))\t%(color:blue)%(subject)%(color:reset)' | column -ts$'\t'
+  }
+  hashes() {
+    git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=$(__fzf_git_color) "$@" $LIST_OPTS
+  }
+  case "$1" in
+    branches)
+      echo 'ALT-O (open in browser) ╱ ALT-A (show all branches)'
+      echo 'ALT-H (list commit hashes)'
+      branches
+      ;;
+    all-branches)
+      echo 'ALT-O (open in browser) ╱ ALT-ENTER (accept without remote)'
+      echo 'ALT-H (list commit hashes)'
+      branches -a
+      ;;
+    hashes)
+      echo 'ALT-O (open in browser) ╱ CTRL-D (diff)'
+      echo 'CTRL-S (toggle sort) ╱ ALT-A (show all hashes)'
+      hashes
+      ;;
+    all-hashes)
+      echo 'ALT-O (open in browser) ╱ CTRL-D (diff)'
+      echo 'CTRL-S (toggle sort)'
+      hashes --all
+      ;;
+    refs)
+      echo 'ALT-O (open in browser) ╱ CTRL-O (open in editor) ╱ ALT-A (show all refs)'
+      refs --exclude='refs/remotes'
+      ;;
+    all-refs)
+      echo 'ALT-O (open in browser) ╱ CTRL-O (open in editor)'
+      refs
+      ;;
+    *) exit 1 ;;
+  esac
+elif [[ $# -gt 1 ]]; then
+  set -e
+
+  branch=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+  if [[ $branch = HEAD ]]; then
+    branch=$(git describe --exact-match --tags 2> /dev/null || git rev-parse --short HEAD)
+  fi
+
+  # Only supports GitHub for now
+  case "$1" in
+    commit)
+      hash=$(grep -o "[a-f0-9]\{7,\}" <<< "$2" | head -n 1)
+      path=/commit/$hash
+      ;;
+    branch|remote-branch)
+      branch=$(sed 's/^[* ]*//' <<< "$2" | cut -d' ' -f1)
+      remote=$(git config branch."${branch}".remote || echo 'origin')
+      branch=${branch#$remote/}
+      path=/tree/$branch
+      ;;
+    remote)
+      remote=$2
+      path=/tree/$branch
+      ;;
+    file) path=/blob/$branch/$(git rev-parse --show-prefix)$2 ;;
+    tag)  path=/releases/tag/$2 ;;
+    *)    exit 1 ;;
+  esac
+
+  remote=${remote:-$(git config branch."${branch}".remote || echo 'origin')}
+  remote_url=$(git remote get-url "$remote" 2> /dev/null || echo "$remote")
+
+  if [[ $remote_url =~ ^git@ ]]; then
+    url=${remote_url%.git}
+    url=${url#git@}
+    url=https://${url/://}
+  elif [[ $remote_url =~ ^http ]]; then
+    url=${remote_url%.git}
+  fi
+
+  case "$(uname -sr)" in
+    Darwin*)
+      open "$url$path"
+      ;;
+    *microsoft* | *Microsoft*)
+      explorer.exe "$url$path"
+      ;;
+    *)
+      xdg-open "$url$path"
+      ;;
+  esac
+  exit 0
 fi
+
+if [[ $- =~ i ]]; then # ----------------------------------
+
+# Redefine this function to change the options
+_fzf_git_fzf() {
+  fzf --height 50% --tmux 90%,70% \
+    --layout reverse --multi --min-height 20+ --border \
+    --no-separator --header-border horizontal \
+    --border-label-pos 2 \
+    --delimiter ' ' \
+    --color 'label:blue' \
+    --preview-window 'right,50%' --preview-border line \
+    --bind 'ctrl-/:change-preview-window(down,50%|hidden|)' "$@"
+}
 
 _fzf_git_check() {
   git rev-parse HEAD > /dev/null 2>&1 && return
@@ -181,6 +176,17 @@ _fzf_git_check() {
 __fzf_git=${BASH_SOURCE[0]:-${(%):-%x}}
 __fzf_git=$(readlink -f "$__fzf_git" 2> /dev/null || /usr/bin/ruby --disable-gems -e 'puts File.expand_path(ARGV.first)' "$__fzf_git" 2> /dev/null)
 
+__fzf_git_run() {
+  declare -p __fzf_git
+  declare -f __fzf_git_pager
+  declare -f __fzf_git_cat
+  declare -f __fzf_git_color
+  declare -f _fzf_git_check
+  declare -f _fzf_git_fzf
+  declare -f _fzf_git_$1
+  echo _fzf_git_$1
+}
+
 _fzf_git_files() {
   _fzf_git_check || return
   local root query
@@ -191,9 +197,9 @@ _fzf_git_files() {
    git ls-files "$root" | grep -vxFf <(git status -s | grep '^[^?]' | cut -c4-; echo :) | sed 's/^/   /') |
   _fzf_git_fzf -m --ansi --nth 2..,.. \
     --border-label '📁 Files ' \
-    --header 'CTRL-O (open in browser) ╱ ALT-E (open in editor)' \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list file {-1}" \
-    --bind "alt-e:execute:${EDITOR:-vim} {-1} > /dev/tty" \
+    --header 'ALT-O (open in browser) ╱ CTRL-O (open in editor)' \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" file {-1}" \
+    --bind "ctrl-o:execute:${EDITOR:-vim} {-1} > /dev/tty" \
     --query "$query" \
     --preview "git diff --no-ext-diff --color=$(__fzf_git_color .) -- {-1} | $(__fzf_git_pager); $(__fzf_git_cat) {-1}" "$@" |
   cut -c4- | sed 's/.* -> //'
@@ -202,11 +208,8 @@ _fzf_git_files() {
 _fzf_git_branches() {
   _fzf_git_check || return
 
-  local shell
-  [[ -n "${BASH_VERSION:-}" ]] && shell=bash || shell=zsh
-
-  bash "$__fzf_git" --list branches |
-  __fzf_git_fzf=$(declare -f _fzf_git_fzf) _fzf_git_fzf --ansi \
+  bash "$__fzf_git" branches |
+  RUN_HASHES="$(__fzf_git_run hashes)" _fzf_git_fzf --ansi \
     --border-label '🌲 Branches ' \
     --header-lines 2 \
     --tiebreak begin \
@@ -214,9 +217,9 @@ _fzf_git_branches() {
     --color hl:underline,hl+:underline \
     --no-hscroll \
     --bind 'ctrl-/:change-preview-window(down,70%|hidden|)' \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list branch {}" \
-    --bind "alt-a:change-border-label(🌳 All branches)+reload:bash \"$__fzf_git\" --list all-branches" \
-    --bind "alt-h:become:LIST_OPTS=\$(cut -c3- <<< {} | cut -d' ' -f1) $shell \"$__fzf_git\" --run hashes" \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" branch {}" \
+    --bind "alt-a:change-border-label(🌳 All branches)+reload:bash \"$__fzf_git\" all-branches" \
+    --bind "alt-h:become:LIST_OPTS=\$(cut -c3- <<< {} | cut -d' ' -f1) eval \$RUN_HASHES" \
     --bind "alt-enter:become:printf '%s\n' {+} | cut -c3- | sed 's@[^/]*/@@'" \
     --preview "git log --oneline --graph --date=short --color=$(__fzf_git_color .) --pretty='format:%C(auto)%cd %h%d %s' \$(cut -c3- <<< {} | cut -d' ' -f1) --" "$@" |
   sed 's/^\* //' | awk '{print $1}' # Slightly modified to work with hashes as well
@@ -227,20 +230,20 @@ _fzf_git_tags() {
   git tag --sort -version:refname |
   _fzf_git_fzf --preview-window right,70% \
     --border-label '📛 Tags ' \
-    --header 'CTRL-O (open in browser)' \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list tag {}" \
+    --header 'ALT-O (open in browser)' \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" tag {}" \
     --preview "git show --color=$(__fzf_git_color .) {} | $(__fzf_git_pager)" "$@"
 }
 
 _fzf_git_hashes() {
   _fzf_git_check || return
-  bash "$__fzf_git" --list hashes |
+  bash "$__fzf_git" hashes |
   _fzf_git_fzf --ansi --no-sort --bind 'ctrl-s:toggle-sort' \
     --border-label '🍡 Hashes ' \
     --header-lines 2 \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list commit {}" \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" commit {}" \
     --bind "ctrl-d:execute:grep -o '[a-f0-9]\{7,\}' <<< {} | head -n 1 | xargs git diff --color=$(__fzf_git_color) > /dev/tty" \
-    --bind "alt-a:change-border-label(🍇 All hashes)+reload:bash \"$__fzf_git\" --list all-hashes" \
+    --bind "alt-a:change-border-label(🍇 All hashes)+reload:bash \"$__fzf_git\" all-hashes" \
     --color hl:underline,hl+:underline \
     --preview "grep -o '[a-f0-9]\{7,\}' <<< {} | head -n 1 | xargs git show --color=$(__fzf_git_color .) | $(__fzf_git_pager)" "$@" |
   awk 'match($0, /[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9]*/) { print substr($0, RSTART, RLENGTH) }'
@@ -251,8 +254,8 @@ _fzf_git_remotes() {
   git remote -v | awk '{print $1 "\t" $2}' | uniq |
   _fzf_git_fzf --tac \
     --border-label '📡 Remotes ' \
-    --header 'CTRL-O (open in browser)' \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list remote {1}" \
+    --header 'ALT-O (open in browser)' \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" remote {1}" \
     --preview-window right,70% \
     --preview "git log --oneline --graph --date=short --color=$(__fzf_git_color .) --pretty='format:%C(auto)%cd %h%d %s' '{1}/$(git rev-parse --abbrev-ref HEAD)' --" "$@" |
   cut -d$'\t' -f1
@@ -278,7 +281,7 @@ _fzf_git_lreflogs() {
 
 _fzf_git_each_ref() {
   _fzf_git_check || return
-  bash "$__fzf_git" --list refs | _fzf_git_fzf --ansi \
+  bash "$__fzf_git" refs | _fzf_git_fzf --ansi \
     --nth 2,2.. \
     --tiebreak begin \
     --border-label '☘️  Each ref ' \
@@ -287,9 +290,9 @@ _fzf_git_each_ref() {
     --color hl:underline,hl+:underline \
     --no-hscroll \
     --bind 'ctrl-/:change-preview-window(down,70%|hidden|)' \
-    --bind "ctrl-o:execute-silent:bash \"$__fzf_git\" --list {1} {2}" \
-    --bind "alt-e:execute:${EDITOR:-vim} <(git show {2}) > /dev/tty" \
-    --bind "alt-a:change-border-label(🍀 Every ref)+reload:bash \"$__fzf_git\" --list all-refs" \
+    --bind "alt-o:execute-silent:bash \"$__fzf_git\" {1} {2}" \
+    --bind "ctrl-o:execute:${EDITOR:-vim} <(git show {2}) > /dev/tty" \
+    --bind "alt-a:change-border-label(🍀 Every ref)+reload:bash \"$__fzf_git\" all-refs" \
     --preview "git log --oneline --graph --date=short --color=$(__fzf_git_color .) --pretty='format:%C(auto)%cd %h%d %s' {2} --" "$@" |
   awk '{print $2}'
 }
@@ -309,13 +312,16 @@ _fzf_git_worktrees() {
 }
 fi # --------------------------------------------------------------------------
 
-if [[ $1 = --run ]]; then
-  shift
-  type=$1
-  shift
-  eval "_fzf_git_$type" "$@"
+[[ $- =~ i ]] || exit
 
-elif [[ $- =~ i ]]; then # ------------------------------------------------------
+fzf-git-help-widget() {
+  echo "fzf-git:"
+  echo "Modes:     Files Branches Tags Remotes Hashes Stashes refLogs Each_ref Worktrees"
+  echo "Functions: _fzf_git_<>"
+  echo
+  zle reset-prompt
+}
+
 if [[ -n "${BASH_VERSION:-}" ]]; then
   __fzf_git_init() {
     bind -m emacs-standard '"\er":  redraw-current-line'
@@ -352,8 +358,11 @@ elif [[ -n "${ZSH_VERSION:-}" ]]; then
         eval "bindkey -M $m '^g${o[1]}' fzf-git-$o-widget"
       done
     done
+
+    zle -N fzf-git-help-widget
+    for m in emacs vicmd viins; do
+      bindkey -M $m "^g^g" fzf-git-help-widget
+    done
   }
 fi
 __fzf_git_init files branches tags remotes hashes stashes lreflogs each_ref worktrees
-
-fi # --------------------------------------------------------------------------
